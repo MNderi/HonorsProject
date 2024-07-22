@@ -2,21 +2,28 @@ const { InferenceSession, Tensor } = require('onnxruntime-node');
 const path = require('path');
 const axios = require('axios'); // Import axios for making HTTP requests
 
-// Load the model
+// Load the model once at startup
 const modelPath = path.join(__dirname, 'model.onnx'); // Constructing the absolute path
+let session;
+
+async function initializeModel() {
+  try {
+    const options = { providers: ['WebAssembly'] }; // Specify provider (optional)
+    session = await InferenceSession.create(modelPath, options);
+    console.log('Model loaded successfully');
+  } catch (error) {
+    console.error('Error loading model:', error);
+  }
+}
+
+// Call initializeModel once during startup
+initializeModel();
+
 function softmax(arr) {
   const max = Math.max(...arr);
   const exps = arr.map(x => Math.exp(x - max));
   const sumExps = exps.reduce((sum, exp) => sum + exp, 0);
   return exps.map(exp => exp / sumExps);
-}
-
-// Function to load the model
-async function loadModel() {
-  const options = { providers: ['WebAssembly'] }; // Specify provider (optional)
-  const session = await InferenceSession.create(modelPath, options);
-  console.log('Model loaded successfully');
-  return session;
 }
 
 // Function to preprocess the input and run inference
@@ -45,9 +52,6 @@ async function coarsePredict(inputText) {
     // Log tokenized inputs for debugging
     console.log('Tokenized Inputs:', { input_ids, attention_mask, token_type_ids });
 
-    // Load the model (or reuse existing session)
-    let session = await loadModel();
-
     // Create tensors directly from arrays
     const inputIdsTensor = new Tensor('int64', input_ids, [1, input_ids.length]);
     const attentionMaskTensor = new Tensor('int64', attention_mask, [1, attention_mask.length]);
@@ -63,7 +67,7 @@ async function coarsePredict(inputText) {
 
     // Access the first output tensor (assuming a single output tensor in this example)
     const outputTensor = Array.from(outputs.output.cpuData);
-    console.log(outputs)
+    console.log(outputs);
     const probabilities = softmax(outputTensor);
 
     console.log('Probabilities:', probabilities);
@@ -88,4 +92,5 @@ async function coarsePredict(inputText) {
     throw error; // Rethrow the error to propagate it upwards
   }
 }
+
 module.exports = { coarsePredict };
