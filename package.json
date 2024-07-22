@@ -23,7 +23,6 @@
     "openai": "^4.52.7",
     "tokenizer": "^1.1.2",
     "tokenizers": "^0.13.3",
-    "tokenizers-win32-x64-msvc": "^0.13.4-rc1",
     "transformers": "^1.8.3"
   }
 }
